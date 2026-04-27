@@ -161,6 +161,7 @@
     }
 
     #editor {
+      position: relative;
       min-height: 100%;
       padding: var(--editor-top-pad) var(--editor-side-pad) var(--editor-bottom-pad);
       outline: none;
@@ -171,8 +172,14 @@
       caret-color: var(--accent);
     }
 
-    #editor:empty::before {
+    #editor.is-empty::before {
       content: "Пиши формулы построчно. Например: 12 * (4 + 1) =";
+      position: absolute;
+      top: var(--editor-top-pad);
+      left: var(--editor-side-pad);
+      right: var(--editor-side-pad);
+      pointer-events: none;
+      white-space: pre-wrap;
       color: var(--placeholder);
     }
 
@@ -384,6 +391,11 @@
       return readNodeText(editor);
     }
 
+    function updateEditorEmptyState(text = getEditorText()) {
+      const isEmpty = text.replace(/\n/g, "").length === 0;
+      editor.classList.toggle("is-empty", isEmpty);
+    }
+
     function normalizeExpression(expression) {
       let source = expression.trim();
 
@@ -547,6 +559,7 @@
 
     function setEditorText(text, caretOffset = null) {
       editor.innerHTML = renderEditorHtml(text);
+      updateEditorEmptyState(text);
 
       if (caretOffset !== null) {
         setCaretOffset(caretOffset);
@@ -806,6 +819,7 @@
 
     editor.addEventListener("input", () => {
       window.requestAnimationFrame(() => {
+        updateEditorEmptyState();
         syncInlineResultOnActiveLine();
         refreshGhost();
       });
@@ -843,6 +857,7 @@
       setTheme(getCurrentTheme());
     }
 
+    updateEditorEmptyState();
     editor.focus();
   </script>
 </body>
