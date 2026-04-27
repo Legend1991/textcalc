@@ -297,6 +297,7 @@
     let pendingResult = null;
     let inlineEditLineStart = null;
     const themeStorageKey = "text-calc-theme";
+    const editorStorageKey = "text-calc-content";
 
     const functionMap = {
       sqrt: "Math.sqrt",
@@ -334,6 +335,22 @@
         localStorage.setItem(themeStorageKey, nextTheme);
       } catch {
         // Ignore storage failures and keep the active theme.
+      }
+    }
+
+    function loadSavedEditorText() {
+      try {
+        return localStorage.getItem(editorStorageKey) ?? "";
+      } catch {
+        return "";
+      }
+    }
+
+    function saveEditorText(text) {
+      try {
+        localStorage.setItem(editorStorageKey, text);
+      } catch {
+        // Ignore storage failures and keep the in-memory content.
       }
     }
 
@@ -560,6 +577,7 @@
     function setEditorText(text, caretOffset = null) {
       editor.innerHTML = renderEditorHtml(text);
       updateEditorEmptyState(text);
+      saveEditorText(text);
 
       if (caretOffset !== null) {
         setCaretOffset(caretOffset);
@@ -842,6 +860,7 @@
       window.requestAnimationFrame(() => {
         updateEditorEmptyState();
         syncInlineResultOnActiveLine();
+        saveEditorText(getEditorText());
         refreshGhost();
       });
     });
@@ -878,7 +897,7 @@
       setTheme(getCurrentTheme());
     }
 
-    updateEditorEmptyState();
+    setEditorText(loadSavedEditorText());
     editor.focus();
   </script>
 </body>
