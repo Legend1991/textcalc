@@ -377,11 +377,18 @@
     }
 
     function renderEditorHtml(text) {
-      return text
+      const normalizedText = text.replace(/\r\n/g, "\n");
+      const rendered = normalizedText
         .replace(/\r\n/g, "\n")
         .split("\n")
         .map(renderLineHtml)
         .join("<br>");
+
+      if (normalizedText.endsWith("\n")) {
+        return `${rendered}<br data-trailing-anchor="true">`;
+      }
+
+      return rendered;
     }
 
     function readNodeText(node) {
@@ -394,6 +401,10 @@
       }
 
       if (node.nodeName === "BR") {
+        if (node.dataset?.trailingAnchor === "true") {
+          return "";
+        }
+
         return "\n";
       }
 
@@ -530,6 +541,10 @@
         }
 
         if (node.nodeName === "BR") {
+          if (node.dataset?.trailingAnchor === "true") {
+            return false;
+          }
+
           const parent = node.parentNode;
           const index = Array.prototype.indexOf.call(parent.childNodes, node);
 
@@ -803,7 +818,7 @@
       selection.addRange(range);
     }
 
-    function confirmGhostResult() {
+    function confirmGhostResult(moveToNextLine = false) {
       if (!pendingResult) {
         insertTextAtCaret("\n");
         rerenderEditorPreservingCaret();
@@ -815,17 +830,21 @@
       const equalIndex = info.lineText.lastIndexOf("=");
       const completedLine = `${info.lineText.slice(0, equalIndex + 1)} ${pendingResult}`;
       const afterText = info.text.slice(info.lineEnd);
-      const separator = afterText.startsWith("\n") ? "" : "\n";
+      const separator = moveToNextLine && !afterText.startsWith("\n") ? "\n" : "";
       const nextText =
         `${info.text.slice(0, info.lineStart)}${completedLine}${separator}${afterText}`;
 
-      setEditorText(nextText, info.lineStart + completedLine.length + 1);
+      const nextCaretOffset = moveToNextLine
+        ? info.lineStart + completedLine.length + 1
+        : info.lineStart + completedLine.length;
+
+      setEditorText(nextText, nextCaretOffset);
       pendingResult = null;
       inlineEditLineStart = null;
       ghost.style.display = "none";
     }
 
-    function confirmImplicitExpression() {
+    function confirmImplicitExpression(moveToNextLine = false) {
       const implicit = getImplicitExpressionInfo();
       if (!implicit) {
         return false;
@@ -833,15 +852,32 @@
 
       const completedLine = `${implicit.visibleExpression} = ${implicit.result}`;
       const afterText = implicit.info.text.slice(implicit.info.lineEnd);
-      const separator = afterText.startsWith("\n") ? "" : "\n";
+      const separator = moveToNextLine && !afterText.startsWith("\n") ? "\n" : "";
       const nextText =
         `${implicit.info.text.slice(0, implicit.info.lineStart)}${completedLine}${separator}${afterText}`;
 
-      setEditorText(nextText, implicit.info.lineStart + completedLine.length + 1);
+      const nextCaretOffset = moveToNextLine
+        ? implicit.info.lineStart + completedLine.length + 1
+        : implicit.info.lineStart + completedLine.length;
+
+      setEditorText(nextText, nextCaretOffset);
       pendingResult = null;
       inlineEditLineStart = null;
       ghost.style.display = "none";
       return true;
+    }
+
+    function confirmCurrentLineResult(moveToNextLine = false) {
+      if (confirmImplicitExpression(moveToNextLine)) {
+        return true;
+      }
+
+      if (getPendingExpressionInfo()) {
+        confirmGhostResult(moveToNextLine);
+        return true;
+      }
+
+      return false;
     }
 
     editor.addEventListener("keydown", (event) => {
@@ -857,13 +893,24 @@
         return;
       }
 
+      if (event.key === "ArrowDown" && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
+        if (confirmCurrentLineResult(true)) {
+          event.preventDefault();
+          refreshGhost();
+        }
+        return;
+      }
+
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        if (confirmImplicitExpression()) {
+        if (confirmCurrentLineResult(false)) {
           refreshGhost();
           return;
         }
-        confirmGhostResult();
+        insertTextAtCaret("\n");
+        rerenderEditorPreservingCaret();
+        inlineEditLineStart = null;
+        saveEditorText(getEditorText());
         refreshGhost();
       }
     });
