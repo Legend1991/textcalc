@@ -4,10 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Text Calc</title>
+  <script>
+    (() => {
+      try {
+        const storedTheme = localStorage.getItem("text-calc-theme");
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = storedTheme || systemTheme;
+      } catch {
+        document.documentElement.dataset.theme = "light";
+      }
+    })();
+  </script>
   <style>
     :root {
       color-scheme: light;
       --bg: #f3efe6;
+      --page-top: #f8f4ec;
       --panel: rgba(255, 252, 246, 0.88);
       --text: #231f1a;
       --muted: #8f8578;
@@ -15,10 +27,41 @@
       --ghost: rgba(35, 31, 26, 0.32);
       --grid: rgba(35, 31, 26, 0.06);
       --shadow: 0 24px 80px rgba(90, 61, 37, 0.12);
+      --glow-a: rgba(216, 111, 69, 0.16);
+      --glow-b: rgba(90, 143, 117, 0.14);
+      --shell-border: rgba(35, 31, 26, 0.08);
+      --topbar-bg: rgba(255, 255, 255, 0.48);
+      --legend-bg: rgba(255, 255, 255, 0.45);
+      --code-bg: rgba(35, 31, 26, 0.05);
+      --toggle-bg: rgba(255, 255, 255, 0.62);
+      --toggle-border: rgba(35, 31, 26, 0.1);
+      --placeholder: rgba(35, 31, 26, 0.28);
       --line-step: 2.1rem;
       --editor-top-pad: 0.18rem;
       --editor-side-pad: 24px;
       --editor-bottom-pad: 40vh;
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #181512;
+      --page-top: #241f1a;
+      --panel: rgba(29, 26, 23, 0.9);
+      --text: #f2eadf;
+      --muted: #b4a99a;
+      --accent: #ff9b6b;
+      --ghost: rgba(242, 234, 223, 0.38);
+      --grid: rgba(242, 234, 223, 0.08);
+      --shadow: 0 28px 100px rgba(0, 0, 0, 0.34);
+      --glow-a: rgba(255, 155, 107, 0.14);
+      --glow-b: rgba(85, 130, 165, 0.16);
+      --shell-border: rgba(242, 234, 223, 0.08);
+      --topbar-bg: rgba(44, 38, 33, 0.68);
+      --legend-bg: rgba(40, 34, 30, 0.64);
+      --code-bg: rgba(242, 234, 223, 0.08);
+      --toggle-bg: rgba(53, 46, 40, 0.9);
+      --toggle-border: rgba(242, 234, 223, 0.12);
+      --placeholder: rgba(242, 234, 223, 0.26);
     }
 
     * {
@@ -30,9 +73,9 @@
       margin: 0;
       min-height: 100%;
       background:
-        radial-gradient(circle at top left, rgba(216, 111, 69, 0.16), transparent 24%),
-        radial-gradient(circle at bottom right, rgba(90, 143, 117, 0.14), transparent 28%),
-        linear-gradient(180deg, #f8f4ec 0%, var(--bg) 100%);
+        radial-gradient(circle at top left, var(--glow-a), transparent 24%),
+        radial-gradient(circle at bottom right, var(--glow-b), transparent 28%),
+        linear-gradient(180deg, var(--page-top) 0%, var(--bg) 100%);
       color: var(--text);
       font-family: "IBM Plex Mono", "Fira Code", Consolas, monospace;
     }
@@ -46,7 +89,7 @@
       min-height: calc(100vh - 48px);
       display: flex;
       flex-direction: column;
-      border: 1px solid rgba(35, 31, 26, 0.08);
+      border: 1px solid var(--shell-border);
       border-radius: 28px;
       overflow: hidden;
       box-shadow: var(--shadow);
@@ -59,8 +102,8 @@
       gap: 16px;
       align-items: center;
       padding: 18px 22px;
-      border-bottom: 1px solid rgba(35, 31, 26, 0.08);
-      background: rgba(255, 255, 255, 0.48);
+      border-bottom: 1px solid var(--shell-border);
+      background: var(--topbar-bg);
     }
 
     .title {
@@ -70,11 +113,42 @@
       text-transform: uppercase;
     }
 
+    .topbar-side {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-left: auto;
+    }
+
     .hint {
       color: var(--muted);
       font-size: 0.82rem;
       text-align: right;
       max-width: 40rem;
+    }
+
+    .theme-toggle {
+      border: 1px solid var(--toggle-border);
+      background: var(--toggle-bg);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 0.65rem 0.9rem;
+      font: inherit;
+      font-size: 0.78rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+      white-space: nowrap;
+    }
+
+    .theme-toggle:hover {
+      /* transform: translateY(-1px); */
+      border-color: var(--glow-b);
+    }
+
+    .theme-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
 
     .editor-wrap {
@@ -99,7 +173,7 @@
 
     #editor:empty::before {
       content: "Пиши формулы построчно. Например: 12 * (4 + 1) =";
-      color: rgba(35, 31, 26, 0.28);
+      color: var(--placeholder);
     }
 
     .ghost {
@@ -125,15 +199,15 @@
       gap: 18px;
       flex-wrap: wrap;
       padding: 14px 22px 18px;
-      border-top: 1px solid rgba(35, 31, 26, 0.08);
+      border-top: 1px solid var(--shell-border);
       color: var(--muted);
       font-size: 0.82rem;
-      background: rgba(255, 255, 255, 0.45);
+      background: var(--legend-bg);
     }
 
     .legend code {
       color: var(--text);
-      background: rgba(35, 31, 26, 0.05);
+      background: var(--code-bg);
       padding: 0.08rem 0.35rem;
       border-radius: 0.35rem;
     }
@@ -159,9 +233,21 @@
         align-items: flex-start;
       }
 
+      .topbar-side {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        margin-left: 0;
+      }
+
       .hint {
         text-align: left;
       }
+
+      .theme-toggle {
+        align-self: flex-start;
+      }
+
       .legend {
         gap: 10px;
       }
@@ -172,7 +258,10 @@
   <main class="shell">
     <div class="topbar">
       <div class="title">Text Calc</div>
-      <div class="hint">Печатай выражение и заканчивай строку знаком <code>=</code>. Для новой строки результат появится ghost-подсказкой справа от <code>=</code>, а при редактировании готовой формулы будет обновляться прямо в строке.</div>
+      <div class="topbar-side">
+        <div class="hint">Печатай выражение и заканчивай строку знаком <code>=</code>. Для новой строки результат появится ghost-подсказкой справа от <code>=</code>, а при редактировании готовой формулы будет обновляться прямо в строке.</div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Переключить тему"></button>
+      </div>
     </div>
 
     <div class="editor-wrap" id="editorWrap">
@@ -191,9 +280,11 @@
     const editor = document.getElementById("editor");
     const ghost = document.getElementById("ghost");
     const editorWrap = document.getElementById("editorWrap");
+    const themeToggle = document.getElementById("themeToggle");
 
     let pendingResult = null;
     let inlineEditLineStart = null;
+    const themeStorageKey = "text-calc-theme";
 
     const functionMap = {
       sqrt: "Math.sqrt",
@@ -209,6 +300,30 @@
       min: "Math.min",
       max: "Math.max"
     };
+
+    function getCurrentTheme() {
+      return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    }
+
+    function setTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+
+      if (themeToggle) {
+        themeToggle.textContent = theme === "dark" ? "🌙" : "☀️";
+        themeToggle.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+      }
+    }
+
+    function toggleTheme() {
+      const nextTheme = getCurrentTheme() === "dark" ? "light" : "dark";
+      setTheme(nextTheme);
+
+      try {
+        localStorage.setItem(themeStorageKey, nextTheme);
+      } catch {
+        // Ignore storage failures and keep the active theme.
+      }
+    }
 
     function escapeHtml(value) {
       return value
@@ -717,6 +832,11 @@
         refreshGhost();
       }
     });
+
+    if (themeToggle) {
+      themeToggle.addEventListener("click", toggleTheme);
+      setTheme(getCurrentTheme());
+    }
 
     editor.focus();
   </script>
