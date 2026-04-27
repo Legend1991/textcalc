@@ -845,6 +845,18 @@
     }
 
     editor.addEventListener("keydown", (event) => {
+      if (event.key === "Tab") {
+        event.preventDefault();
+        insertTextAtCaret("    ");
+        window.requestAnimationFrame(() => {
+          updateEditorEmptyState();
+          syncInlineResultOnActiveLine();
+          saveEditorText(getEditorText());
+          refreshGhost();
+        });
+        return;
+      }
+
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         if (confirmImplicitExpression()) {
