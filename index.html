@@ -372,6 +372,7 @@
     let inlineEditLineStart = null;
     const themeStorageKey = "text-calc-theme";
     const editorStorageKey = "text-calc-content";
+    const hintCollapsedStorageKey = "text-calc-hint-collapsed";
 
     const functionMap = {
       sqrt: "Math.sqrt",
@@ -428,6 +429,22 @@
       }
     }
 
+    function loadHintCollapsedState() {
+      try {
+        return localStorage.getItem(hintCollapsedStorageKey) === "true";
+      } catch {
+        return false;
+      }
+    }
+
+    function saveHintCollapsedState(isCollapsed) {
+      try {
+        localStorage.setItem(hintCollapsedStorageKey, String(isCollapsed));
+      } catch {
+        // Ignore storage failures and keep the in-memory state.
+      }
+    }
+
     function updateHintToggle() {
       if (!hintToggle || !topbarSide) {
         return;
@@ -444,6 +461,7 @@
       }
 
       topbarSide.classList.toggle("hint-collapsed");
+      saveHintCollapsedState(topbarSide.classList.contains("hint-collapsed"));
       updateHintToggle();
     }
 
@@ -1082,6 +1100,9 @@
     }
 
     if (hintToggle) {
+      if (loadHintCollapsedState()) {
+        topbarSide.classList.add("hint-collapsed");
+      }
       hintToggle.addEventListener("click", toggleHint);
       updateHintToggle();
     }
