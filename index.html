@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text Calc</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3efe6;
+      --panel: rgba(255, 252, 246, 0.88);
+      --text: #231f1a;
+      --muted: #8f8578;
+      --accent: #d86f45;
+      --ghost: rgba(35, 31, 26, 0.32);
+      --grid: rgba(35, 31, 26, 0.06);
+      --shadow: 0 24px 80px rgba(90, 61, 37, 0.12);
+      --line-step: 2.1rem;
+      --editor-top-pad: 0.18rem;
+      --editor-side-pad: 24px;
+      --editor-bottom-pad: 40vh;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(216, 111, 69, 0.16), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(90, 143, 117, 0.14), transparent 28%),
+        linear-gradient(180deg, #f8f4ec 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: "IBM Plex Mono", "Fira Code", Consolas, monospace;
+    }
+
+    body {
+      padding: 24px;
+    }
+
+    .shell {
+      position: relative;
+      min-height: calc(100vh - 48px);
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(35, 31, 26, 0.08);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 18px 22px;
+      border-bottom: 1px solid rgba(35, 31, 26, 0.08);
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    .title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: right;
+      max-width: 40rem;
+    }
+
+    .editor-wrap {
+      position: relative;
+      flex: 1;
+      overflow: auto;
+      background:
+        linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 100% var(--line-step),
+        var(--panel);
+    }
+
+    #editor {
+      min-height: 100%;
+      padding: var(--editor-top-pad) var(--editor-side-pad) var(--editor-bottom-pad);
+      outline: none;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: clamp(1rem, 1.15vw, 1.2rem);
+      line-height: var(--line-step);
+      caret-color: var(--accent);
+    }
+
+    #editor:empty::before {
+      content: "Пиши формулы построчно. Например: 12 * (4 + 1) =";
+      color: rgba(35, 31, 26, 0.28);
+    }
+
+    .ghost {
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: none;
+      pointer-events: none;
+      white-space: pre;
+      color: var(--ghost);
+      font-weight: 700;
+      font-size: clamp(1rem, 1.15vw, 1.2rem);
+      line-height: var(--line-step);
+      font-family: inherit;
+    }
+
+    .result {
+      font-weight: 700;
+    }
+
+    .legend {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      padding: 14px 22px 18px;
+      border-top: 1px solid rgba(35, 31, 26, 0.08);
+      color: var(--muted);
+      font-size: 0.82rem;
+      background: rgba(255, 255, 255, 0.45);
+    }
+
+    .legend code {
+      color: var(--text);
+      background: rgba(35, 31, 26, 0.05);
+      padding: 0.08rem 0.35rem;
+      border-radius: 0.35rem;
+    }
+
+    @media (max-width: 720px) {
+      :root {
+        --editor-top-pad: 0.12rem;
+        --editor-side-pad: 16px;
+        --editor-bottom-pad: 32vh;
+      }
+
+      body {
+        padding: 12px;
+      }
+
+      .shell {
+        min-height: calc(100vh - 24px);
+        border-radius: 20px;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .hint {
+        text-align: left;
+      }
+      .legend {
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">
+      <div class="title">Text Calc</div>
+      <div class="hint">Печатай выражение и заканчивай строку знаком <code>=</code>. Для новой строки результат появится ghost-подсказкой справа от <code>=</code>, а при редактировании готовой формулы будет обновляться прямо в строке.</div>
+    </div>
+
+    <div class="editor-wrap" id="editorWrap">
+      <div id="editor" contenteditable="true" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
+      <div class="ghost" id="ghost"></div>
+    </div>
+
+    <div class="legend">
+      <span>Операторы: <code>+ - * / % ^</code></span>
+      <span>Функции: <code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code></span>
+      <span>Константы: <code>pi</code>, <code>e</code></span>
+    </div>
+  </main>
+
+  <script>
+    const editor = document.getElementById("editor");
+    const ghost = document.getElementById("ghost");
+    const editorWrap = document.getElementById("editorWrap");
+
+    let pendingResult = null;
+    let inlineEditLineStart = null;
+
+    const functionMap = {
+      sqrt: "Math.sqrt",
+      sin: "Math.sin",
+      cos: "Math.cos",
+      tan: "Math.tan",
+      abs: "Math.abs",
+      floor: "Math.floor",
+      ceil: "Math.ceil",
+      round: "Math.round",
+      log: "Math.log10",
+      ln: "Math.log",
+      min: "Math.min",
+      max: "Math.max"
+    };
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function renderLineHtml(line) {
+      const equalIndex = line.lastIndexOf("=");
+      if (equalIndex === -1) {
+        return escapeHtml(line);
+      }
+
+      const left = line.slice(0, equalIndex + 1);
+      const trailing = line.slice(equalIndex + 1).trim();
+      if (!trailing) {
+        return escapeHtml(left);
+      }
+
+      return `${escapeHtml(left)} <span class="result">${escapeHtml(trailing)}</span>`;
+    }
+
+    function renderEditorHtml(text) {
+      return text
+        .replace(/\r\n/g, "\n")
+        .split("\n")
+        .map(renderLineHtml)
+        .join("<br>");
+    }
+
+    function readNodeText(node) {
+      if (!node) {
+        return "";
+      }
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent ?? "";
+      }
+
+      if (node.nodeName === "BR") {
+        return "\n";
+      }
+
+      let text = "";
+      for (const child of node.childNodes) {
+        text += readNodeText(child);
+      }
+      return text;
+    }
+
+    function getEditorText() {
+      return readNodeText(editor);
+    }
+
+    function normalizeExpression(expression) {
+      let source = expression.trim();
+
+      if (!source) {
+        return "";
+      }
+
+      source = source
+        .replace(/(\d),(\d)/g, "$1.$2")
+        .replace(/×/g, "*")
+        .replace(/÷/g, "/")
+        .replace(/−/g, "-")
+        .replace(/\bpi\b/gi, "Math.PI")
+        .replace(/\be\b/g, "Math.E")
+        .replace(/\^/g, "**");
+
+      for (const [name, target] of Object.entries(functionMap)) {
+        const pattern = new RegExp(`\\b${name}\\s*\\(`, "gi");
+        source = source.replace(pattern, `${target}(`);
+      }
+
+      if (/[^0-9+\-*/%().,\sA-Za-z_]/.test(source)) {
+        throw new Error("unsupported");
+      }
+
+      const identifiers = source.match(/[A-Za-z_]+/g) ?? [];
+      const allowedIdentifiers = new Set([
+        "Math",
+        "PI",
+        "E",
+        "sqrt",
+        "sin",
+        "cos",
+        "tan",
+        "abs",
+        "floor",
+        "ceil",
+        "round",
+        "log10",
+        "log",
+        "min",
+        "max"
+      ]);
+
+      for (const identifier of identifiers) {
+        if (!allowedIdentifiers.has(identifier)) {
+          throw new Error("unsupported");
+        }
+      }
+
+      return source;
+    }
+
+    function evaluateExpression(expression) {
+      const normalized = normalizeExpression(expression);
+
+      if (!normalized) {
+        return null;
+      }
+
+      const result = Function(`"use strict"; return (${normalized});`)();
+
+      if (!Number.isFinite(result)) {
+        return null;
+      }
+
+      const rounded = Math.abs(result) < 1e15
+        ? Number.parseFloat(result.toFixed(12))
+        : result;
+
+      return String(rounded);
+    }
+
+    function getSelectionRange() {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        return null;
+      }
+
+      const range = selection.getRangeAt(0);
+      if (!editor.contains(range.startContainer)) {
+        return null;
+      }
+
+      return range;
+    }
+
+    function getCaretOffset() {
+      const range = getSelectionRange();
+      if (!range) {
+        return 0;
+      }
+
+      const workingRange = range.cloneRange();
+      workingRange.selectNodeContents(editor);
+      workingRange.setEnd(range.endContainer, range.endOffset);
+      return readNodeText(workingRange.cloneContents()).length;
+    }
+
+    function createCollapsedRangeAtOffset(offset) {
+      const range = document.createRange();
+      let remaining = Math.max(0, offset);
+
+      function locate(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const length = node.textContent?.length ?? 0;
+          if (remaining <= length) {
+            range.setStart(node, remaining);
+            range.collapse(true);
+            return true;
+          }
+
+          remaining -= length;
+          return false;
+        }
+
+        if (node.nodeName === "BR") {
+          const parent = node.parentNode;
+          const index = Array.prototype.indexOf.call(parent.childNodes, node);
+
+          if (remaining === 0) {
+            range.setStart(parent, index);
+            range.collapse(true);
+            return true;
+          }
+
+          if (remaining === 1) {
+            range.setStart(parent, index + 1);
+            range.collapse(true);
+            return true;
+          }
+
+          remaining -= 1;
+          return false;
+        }
+
+        for (const child of node.childNodes) {
+          if (locate(child)) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      if (locate(editor)) {
+        return range;
+      }
+
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      return range;
+    }
+
+    function setCaretOffset(offset) {
+      const selection = window.getSelection();
+      const range = createCollapsedRangeAtOffset(offset);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    function setEditorText(text, caretOffset = null) {
+      editor.innerHTML = renderEditorHtml(text);
+
+      if (caretOffset !== null) {
+        setCaretOffset(caretOffset);
+      }
+    }
+
+    function rerenderEditorPreservingCaret() {
+      const caretOffset = getCaretOffset();
+      setEditorText(getEditorText(), caretOffset);
+    }
+
+    function getCurrentLineInfo() {
+      const text = getEditorText();
+      const caretOffset = getCaretOffset();
+      const lineStart = text.lastIndexOf("\n", Math.max(0, caretOffset - 1)) + 1;
+      const lineEndIndex = text.indexOf("\n", caretOffset);
+      const lineEnd = lineEndIndex === -1 ? text.length : lineEndIndex;
+      const lineText = text.slice(lineStart, lineEnd);
+
+      return {
+        text,
+        caretOffset,
+        lineStart,
+        lineEnd,
+        lineText,
+        caretInLine: caretOffset - lineStart
+      };
+    }
+
+    function getPendingExpressionInfo() {
+      const info = getCurrentLineInfo();
+      const equalIndex = info.lineText.lastIndexOf("=");
+
+      if (equalIndex === -1) {
+        return null;
+      }
+
+      const trailing = info.lineText.slice(equalIndex + 1);
+      if (trailing.trim() !== "") {
+        return null;
+      }
+
+      if (inlineEditLineStart === info.lineStart && info.caretInLine <= equalIndex + 1) {
+        return null;
+      }
+
+      const expression = info.lineText.slice(0, equalIndex).trim();
+      if (!expression) {
+        return null;
+      }
+
+      return {
+        expression,
+        anchorOffset: info.lineStart + equalIndex + 1
+      };
+    }
+
+    function getImplicitExpressionInfo() {
+      const info = getCurrentLineInfo();
+
+      if (info.lineText.includes("=")) {
+        return null;
+      }
+
+      if (info.caretInLine !== info.lineText.length) {
+        return null;
+      }
+
+      const visibleExpression = info.lineText.replace(/\s+$/u, "");
+      if (!visibleExpression.trim()) {
+        return null;
+      }
+
+      try {
+        const result = evaluateExpression(visibleExpression);
+        if (!result) {
+          return null;
+        }
+
+        return {
+          info,
+          visibleExpression,
+          result
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    function syncInlineResultOnActiveLine() {
+      const info = getCurrentLineInfo();
+      const equalIndex = info.lineText.lastIndexOf("=");
+
+      if (equalIndex === -1) {
+        if (inlineEditLineStart === info.lineStart) {
+          inlineEditLineStart = null;
+        }
+        return false;
+      }
+
+      if (info.caretInLine > equalIndex + 1) {
+        return false;
+      }
+
+      const trailing = info.lineText.slice(equalIndex + 1);
+      if (trailing.trim() !== "") {
+        inlineEditLineStart = info.lineStart;
+      }
+
+      if (inlineEditLineStart !== info.lineStart) {
+        return false;
+      }
+
+      const expression = info.lineText.slice(0, equalIndex).trim();
+      let updatedLine = info.lineText.slice(0, equalIndex + 1);
+
+      try {
+        const result = evaluateExpression(expression);
+        if (result) {
+          updatedLine += ` ${result}`;
+        }
+      } catch {
+        inlineEditLineStart = info.lineStart;
+      }
+
+      if (updatedLine === info.lineText) {
+        return false;
+      }
+
+      setEditorText(
+        `${info.text.slice(0, info.lineStart)}${updatedLine}${info.text.slice(info.lineEnd)}`,
+        info.lineStart + Math.min(info.caretInLine, updatedLine.length)
+      );
+      return true;
+    }
+
+    function updateGhostPosition(anchorOffset) {
+      if (!pendingResult) {
+        ghost.style.display = "none";
+        return;
+      }
+
+      const marker = document.createElement("span");
+      marker.textContent = "\u200b";
+      const range = createCollapsedRangeAtOffset(anchorOffset);
+      range.insertNode(marker);
+
+      const markerRect = marker.getBoundingClientRect();
+      const wrapRect = editorWrap.getBoundingClientRect();
+
+      ghost.style.visibility = "hidden";
+      ghost.style.display = "block";
+      const ghostRect = ghost.getBoundingClientRect();
+      ghost.style.left = `${markerRect.left - wrapRect.left + editorWrap.scrollLeft + 4}px`;
+      ghost.style.top = `${markerRect.top - wrapRect.top + editorWrap.scrollTop + (markerRect.height - ghostRect.height) / 2}px`;
+      ghost.style.visibility = "visible";
+      ghost.style.display = "block";
+
+      marker.remove();
+    }
+
+    function refreshGhost() {
+      try {
+        const pending = getPendingExpressionInfo();
+        if (!pending) {
+          pendingResult = null;
+          ghost.style.display = "none";
+          return;
+        }
+
+        const result = evaluateExpression(pending.expression);
+        if (!result) {
+          pendingResult = null;
+          ghost.style.display = "none";
+          return;
+        }
+
+        pendingResult = result;
+        ghost.textContent = ` ${result}`;
+        updateGhostPosition(pending.anchorOffset);
+      } catch {
+        pendingResult = null;
+        ghost.style.display = "none";
+      }
+    }
+
+    function insertTextAtCaret(text) {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        return;
+      }
+
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+
+      const textNode = document.createTextNode(text);
+      range.insertNode(textNode);
+      range.setStartAfter(textNode);
+      range.collapse(true);
+
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    function confirmGhostResult() {
+      if (!pendingResult) {
+        insertTextAtCaret("\n");
+        rerenderEditorPreservingCaret();
+        inlineEditLineStart = null;
+        return;
+      }
+
+      const info = getCurrentLineInfo();
+      const equalIndex = info.lineText.lastIndexOf("=");
+      const completedLine = `${info.lineText.slice(0, equalIndex + 1)} ${pendingResult}`;
+      const afterText = info.text.slice(info.lineEnd);
+      const separator = afterText.startsWith("\n") ? "" : "\n";
+      const nextText =
+        `${info.text.slice(0, info.lineStart)}${completedLine}${separator}${afterText}`;
+
+      setEditorText(nextText, info.lineStart + completedLine.length + 1);
+      pendingResult = null;
+      inlineEditLineStart = null;
+      ghost.style.display = "none";
+    }
+
+    function confirmImplicitExpression() {
+      const implicit = getImplicitExpressionInfo();
+      if (!implicit) {
+        return false;
+      }
+
+      const completedLine = `${implicit.visibleExpression} = ${implicit.result}`;
+      const afterText = implicit.info.text.slice(implicit.info.lineEnd);
+      const separator = afterText.startsWith("\n") ? "" : "\n";
+      const nextText =
+        `${implicit.info.text.slice(0, implicit.info.lineStart)}${completedLine}${separator}${afterText}`;
+
+      setEditorText(nextText, implicit.info.lineStart + completedLine.length + 1);
+      pendingResult = null;
+      inlineEditLineStart = null;
+      ghost.style.display = "none";
+      return true;
+    }
+
+    editor.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        if (confirmImplicitExpression()) {
+          refreshGhost();
+          return;
+        }
+        confirmGhostResult();
+        refreshGhost();
+      }
+    });
+
+    editor.addEventListener("input", () => {
+      window.requestAnimationFrame(() => {
+        syncInlineResultOnActiveLine();
+        refreshGhost();
+      });
+    });
+
+    ["click", "keyup", "focus"].forEach((eventName) => {
+      editor.addEventListener(eventName, () => {
+        window.requestAnimationFrame(refreshGhost);
+      });
+    });
+
+    document.addEventListener("selectionchange", () => {
+      const selection = window.getSelection();
+      if (selection && editor.contains(selection.anchorNode)) {
+        window.requestAnimationFrame(refreshGhost);
+      } else if (!editor.contains(document.activeElement)) {
+        ghost.style.display = "none";
+      }
+    });
+
+    editorWrap.addEventListener("scroll", () => {
+      if (pendingResult) {
+        refreshGhost();
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      if (pendingResult) {
+        refreshGhost();
+      }
+    });
+
+    editor.focus();
+  </script>
+</body>
+</html>
