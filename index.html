@@ -642,11 +642,39 @@
         return {
           info,
           visibleExpression,
-          result
+          result,
+          anchorOffset: info.caretOffset
         };
       } catch {
         return null;
       }
+    }
+
+    function getGhostExpressionInfo() {
+      const pending = getPendingExpressionInfo();
+      if (pending) {
+        const result = evaluateExpression(pending.expression);
+        if (!result) {
+          return null;
+        }
+
+        return {
+          anchorOffset: pending.anchorOffset,
+          result,
+          ghostText: ` ${result}`
+        };
+      }
+
+      const implicit = getImplicitExpressionInfo();
+      if (!implicit) {
+        return null;
+      }
+
+      return {
+        anchorOffset: implicit.anchorOffset,
+        result: implicit.result,
+        ghostText: ` = ${implicit.result}`
+      };
     }
 
     function syncInlineResultOnActiveLine() {
@@ -723,23 +751,16 @@
 
     function refreshGhost() {
       try {
-        const pending = getPendingExpressionInfo();
-        if (!pending) {
+        const ghostInfo = getGhostExpressionInfo();
+        if (!ghostInfo) {
           pendingResult = null;
           ghost.style.display = "none";
           return;
         }
 
-        const result = evaluateExpression(pending.expression);
-        if (!result) {
-          pendingResult = null;
-          ghost.style.display = "none";
-          return;
-        }
-
-        pendingResult = result;
-        ghost.textContent = ` ${result}`;
-        updateGhostPosition(pending.anchorOffset);
+        pendingResult = ghostInfo.result;
+        ghost.textContent = ghostInfo.ghostText;
+        updateGhostPosition(ghostInfo.anchorOffset);
       } catch {
         pendingResult = null;
         ghost.style.display = "none";
