@@ -1,15 +1,75 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Text Calc</title>
+  <title>calcnote.io - text-based calculator notebook</title>
+  <meta name="description" content="A text-based calculator notebook that evaluates formulas inline. Type math naturally, preview ghost results, confirm answers with Enter, and keep your notes stored locally in the browser.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta name="application-name" content="calcnote.io">
+  <meta name="apple-mobile-web-app-title" content="calcnote.io">
+  <meta name="theme-color" content="#f8f4ec">
+  <link rel="canonical" href="https://calcnote.io/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="calcnote.io - text-based calculator notebook">
+  <meta property="og:description" content="Type formulas as plain text, see the result appear inline on the right, and confirm it with Enter. Everything runs in the browser and stays stored locally.">
+  <meta property="og:url" content="https://calcnote.io/">
+  <meta property="og:site_name" content="calcnote.io">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="calcnote.io - text-based calculator notebook">
+  <meta name="twitter:description" content="A notebook-style inline calculator with ghost previews, Enter-to-confirm results, and local note storage.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "name": "calcnote.io",
+          "alternateName": "CalcNote",
+          "url": "https://calcnote.io/",
+          "inLanguage": "en"
+        },
+        {
+          "@type": "WebApplication",
+          "name": "calcnote.io",
+          "url": "https://calcnote.io/",
+          "applicationCategory": "UtilitiesApplication",
+          "operatingSystem": "Any",
+          "browserRequirements": "Requires JavaScript and a modern web browser",
+          "description": "A text-based calculator notebook that shows inline math results and stores your notes locally in the browser.",
+          "inLanguage": "en",
+          "isAccessibleForFree": true,
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "featureList": [
+            "Inline ghost preview for formulas",
+            "Confirm results with Enter or ArrowDown",
+            "Dark theme",
+            "Local storage persistence",
+            "Plain-text paste"
+          ]
+        }
+      ]
+    }
+  </script>
   <script>
     (() => {
       try {
         const storedTheme = localStorage.getItem("text-calc-theme");
         const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-        document.documentElement.dataset.theme = storedTheme || systemTheme;
+        const theme = storedTheme || systemTheme;
+        document.documentElement.dataset.theme = theme;
+        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeColorMeta) {
+          themeColorMeta.setAttribute("content", theme === "dark" ? "#241f1a" : "#f8f4ec");
+        }
       } catch {
         document.documentElement.dataset.theme = "light";
       }
@@ -18,6 +78,8 @@
   <style>
     :root {
       color-scheme: light;
+      --brand-font: "Space Grotesk", "Segoe UI", sans-serif;
+      --mono-font: "IBM Plex Mono", "Fira Code", Consolas, monospace;
       --bg: #f3efe6;
       --page-top: #f8f4ec;
       --panel: rgba(255, 252, 246, 0.88);
@@ -83,7 +145,7 @@
         radial-gradient(circle at bottom right, var(--glow-b), transparent 28%),
         linear-gradient(180deg, var(--page-top) 0%, var(--bg) 100%);
       color: var(--text);
-      font-family: "IBM Plex Mono", "Fira Code", Consolas, monospace;
+      font-family: var(--mono-font);
     }
 
     body {
@@ -114,10 +176,16 @@
     }
 
     .title {
-      font-size: 0.95rem;
+      margin: 0;
+      font-family: var(--brand-font);
+      font-size: 1.35rem;
       font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      letter-spacing: -0.045em;
+      line-height: 1;
+    }
+
+    .title-domain {
+      color: var(--accent);
     }
 
     .topbar-side {
@@ -152,28 +220,144 @@
       outline-offset: 2px;
     }
 
-    .theme-toggle {
+    .topbar-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .theme-toggle,
+    .language-field {
       border: 1px solid var(--toggle-border);
       background: var(--toggle-bg);
       color: var(--text);
       border-radius: 999px;
-      padding: 0.65rem 0.9rem;
       font: inherit;
       font-size: 0.78rem;
       line-height: 1;
-      cursor: pointer;
       transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
       white-space: nowrap;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        0 10px 24px rgba(35, 31, 26, 0.06);
     }
 
-    .theme-toggle:hover {
+    .theme-toggle {
+      padding: 0.65rem 0.9rem;
+      cursor: pointer;
+    }
+
+    .theme-toggle:hover,
+    .language-field:hover {
       /* transform: translateY(-1px); */
       border-color: var(--glow-b);
     }
 
-    .theme-toggle:focus-visible {
+    .theme-toggle:focus-visible,
+    .language-field:focus-within {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
+    }
+
+    .language-field {
+      position: relative;
+      min-width: 8.75rem;
+      padding: 0;
+      overflow: visible;
+    }
+
+    .language-button {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      padding: 0.65rem 2.05rem 0.65rem 0.9rem;
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 400;
+      line-height: 1;
+      cursor: pointer;
+      outline: none;
+      text-align: left;
+      border-radius: inherit;
+    }
+
+    .language-button::after {
+      content: "▾";
+      position: absolute;
+      top: 50%;
+      right: 0.9rem;
+      transform: translateY(-52%);
+      color: var(--muted);
+      font-size: 1.2rem;
+      transition: transform 140ms ease, color 140ms ease;
+      pointer-events: none;
+    }
+
+    .language-field.is-open .language-button::after {
+      transform: translateY(-42%) rotate(180deg);
+      color: var(--accent);
+    }
+
+    .language-menu {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      min-width: 100%;
+      padding: 0.45rem;
+      display: none;
+      border: 1px solid var(--toggle-border);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      z-index: 20;
+    }
+
+    .language-field.is-open .language-menu {
+      display: grid;
+      gap: 0.2rem;
+    }
+
+    .language-option {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--text);
+      padding: 0.72rem 0.85rem;
+      font: inherit;
+      font-size: 0.8rem;
+      text-align: left;
+      cursor: pointer;
+      transition: background 140ms ease, color 140ms ease;
+    }
+
+    .language-option:hover,
+    .language-option:focus-visible {
+      background: var(--code-bg);
+      outline: none;
+    }
+
+    .language-option.is-selected {
+      background: rgba(216, 111, 69, 0.12);
+      color: var(--text);
+    }
+
+    .language-option.is-selected::before {
+      content: "•";
+      display: inline-block;
+      width: 0.8rem;
+      margin-right: 0.35rem;
+      color: var(--accent);
+    }
+
+    .language-option:not(.is-selected)::before {
+      content: "";
+      display: inline-block;
+      width: 0.8rem;
+      margin-right: 0.35rem;
     }
 
     .editor-wrap {
@@ -231,7 +415,7 @@
     }
 
     #editor.is-empty::before {
-      content: "Пиши формулы построчно. Например: 12 * (4 + 1) =";
+      content: attr(data-placeholder);
       position: absolute;
       top: var(--editor-top-pad);
       left: var(--editor-side-pad);
@@ -297,13 +481,17 @@
         position: relative;
         flex-direction: column;
         align-items: flex-start;
-        padding-right: 96px;
+        padding-right: 198px;
       }
 
       .topbar-side {
         width: 100%;
         display: block;
         margin-left: 0;
+      }
+
+      .title {
+        padding: 0.4065rem 0;
       }
 
       .hint {
@@ -324,11 +512,10 @@
         margin-top: 0;
       }
 
-      .theme-toggle {
+      .topbar-controls {
         position: absolute;
         top: 18px;
         right: 18px;
-        align-self: auto;
       }
 
       .legend {
@@ -340,23 +527,36 @@
 <body>
   <main class="shell">
     <div class="topbar">
-      <div class="title">Text Calc</div>
+      <h1 class="title">calcnote<span class="title-domain">.io</span></h1>
       <div class="topbar-side" id="topbarSide">
-        <div class="hint">Печатай формулу свободно. Как только строку можно вычислить, справа появится ghost-подсказка с <code>=</code> и результатом. <code>Enter</code> подтвердит ответ, а при редактировании готовой строки результат после <code>=</code> обновится автоматически.</div>
-        <button class="hint-toggle" id="hintToggle" type="button" aria-expanded="true"></button>
-        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Переключить тему"></button>
+        <div class="hint" id="hint">Type a formula freely. As soon as the current line can be evaluated, a ghost preview with <code>=</code> and the result appears on the right. <code>Enter</code> confirms it, and when you edit a completed line the value after <code>=</code> updates automatically.</div>
+        <button class="hint-toggle" id="hintToggle" type="button" aria-expanded="true">Hide hint ▲</button>
+        <div class="topbar-controls">
+          <div class="language-field" id="languageField">
+            <button class="language-button" id="languageButton" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Change language">English</button>
+            <div class="language-menu" id="languageMenu" role="listbox" aria-label="Language options">
+              <button class="language-option" type="button" data-locale="en" role="option">English</button>
+              <button class="language-option" type="button" data-locale="zh" role="option">中文</button>
+              <button class="language-option" type="button" data-locale="hi" role="option">हिन्दी</button>
+              <button class="language-option" type="button" data-locale="es" role="option">Español</button>
+              <button class="language-option" type="button" data-locale="fr" role="option">Français</button>
+              <button class="language-option" type="button" data-locale="uk" role="option">Українська</button>
+            </div>
+          </div>
+          <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme"></button>
+        </div>
       </div>
     </div>
 
     <div class="editor-wrap" id="editorWrap">
-      <div id="editor" contenteditable="true" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
+      <div id="editor" contenteditable="true" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-placeholder="Write formulas line by line. For example: 12 * (4 + 1) ="></div>
       <div class="ghost" id="ghost"></div>
     </div>
 
     <div class="legend">
-      <span>Операторы: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code></span>
-      <span>Функции: <code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code></span>
-      <span>Константы: <code>pi</code>, <code>e</code></span>
+      <span id="legendOperators">Operators: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code></span>
+      <span id="legendFunctions">Functions: <code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code></span>
+      <span id="legendConstants">Constants: <code>pi</code>, <code>e</code></span>
     </div>
   </main>
 
@@ -364,15 +564,103 @@
     const editor = document.getElementById("editor");
     const ghost = document.getElementById("ghost");
     const editorWrap = document.getElementById("editorWrap");
+    const hint = document.getElementById("hint");
+    const legendOperators = document.getElementById("legendOperators");
+    const legendFunctions = document.getElementById("legendFunctions");
+    const legendConstants = document.getElementById("legendConstants");
+    const languageField = document.getElementById("languageField");
+    const languageButton = document.getElementById("languageButton");
+    const languageMenu = document.getElementById("languageMenu");
+    const languageOptions = Array.from(document.querySelectorAll(".language-option"));
     const themeToggle = document.getElementById("themeToggle");
     const hintToggle = document.getElementById("hintToggle");
     const topbarSide = document.getElementById("topbarSide");
 
     let pendingResult = null;
     let inlineEditLineStart = null;
+    let currentLocale = "en";
     const themeStorageKey = "text-calc-theme";
+    const languageStorageKey = "text-calc-language";
     const editorStorageKey = "text-calc-content";
     const hintCollapsedStorageKey = "text-calc-hint-collapsed";
+    const localeOrder = ["en", "zh", "hi", "es", "fr", "uk"];
+    const localeNames = {
+      en: "English",
+      zh: "中文",
+      hi: "हिन्दी",
+      es: "Español",
+      fr: "Français",
+      uk: "Українська"
+    };
+
+    const localeMessages = {
+      en: {
+        placeholder: "Write formulas line by line. For example: 12 * (4 + 1) =",
+        hint: "Type a formula freely. As soon as the current line can be evaluated, a ghost preview with <code>=</code> and the result appears on the right. <code>Enter</code> confirms it, and when you edit a completed line the value after <code>=</code> updates automatically.",
+        legendOperators: "Operators: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code>",
+        legendFunctions: "Functions: <code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code>",
+        legendConstants: "Constants: <code>pi</code>, <code>e</code>",
+        showHint: "Show hint ▼",
+        hideHint: "Hide hint ▲",
+        toggleThemeAria: "Toggle theme",
+        toggleLanguageAria: "Change language"
+      },
+      zh: {
+        placeholder: "按行输入公式。例如：12 * (4 + 1) =",
+        hint: "自由输入公式。当前行一旦可以计算，右侧就会出现带有 <code>=</code> 和结果的 ghost 预览。按 <code>Enter</code> 可确认结果；编辑已完成的行时，<code>=</code> 后面的值会自动更新。",
+        legendOperators: "运算符：<code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code>",
+        legendFunctions: "函数：<code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code>",
+        legendConstants: "常量：<code>pi</code>, <code>e</code>",
+        showHint: "显示提示 ▼",
+        hideHint: "隐藏提示 ▲",
+        toggleThemeAria: "切换主题",
+        toggleLanguageAria: "切换语言"
+      },
+      hi: {
+        placeholder: "सूत्र पंक्ति-दर-पंक्ति लिखें। उदाहरण: 12 * (4 + 1) =",
+        hint: "सूत्र स्वतंत्र रूप से टाइप करें। जैसे ही वर्तमान पंक्ति की गणना हो सकती है, दाईं ओर <code>=</code> और परिणाम के साथ ghost preview दिखाई देता है। <code>Enter</code> परिणाम को स्वीकार करता है, और पूरी की गई पंक्ति को संपादित करने पर <code>=</code> के बाद का मान अपने आप अपडेट हो जाता है।",
+        legendOperators: "ऑपरेटर: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code>",
+        legendFunctions: "फंक्शन्स: <code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code>",
+        legendConstants: "स्थिरांक: <code>pi</code>, <code>e</code>",
+        showHint: "संकेत दिखाएँ ▼",
+        hideHint: "संकेत छिपाएँ ▲",
+        toggleThemeAria: "थीम बदलें",
+        toggleLanguageAria: "भाषा बदलें"
+      },
+      es: {
+        placeholder: "Escribe fórmulas línea por línea. Por ejemplo: 12 * (4 + 1) =",
+        hint: "Escribe una fórmula libremente. En cuanto la línea actual se puede calcular, aparece a la derecha una vista ghost con <code>=</code> y el resultado. <code>Enter</code> lo confirma, y al editar una línea ya completada el valor después de <code>=</code> se actualiza automáticamente.",
+        legendOperators: "Operadores: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code>",
+        legendFunctions: "Funciones: <code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code>",
+        legendConstants: "Constantes: <code>pi</code>, <code>e</code>",
+        showHint: "Mostrar ayuda ▼",
+        hideHint: "Ocultar ayuda ▲",
+        toggleThemeAria: "Cambiar tema",
+        toggleLanguageAria: "Cambiar idioma"
+      },
+      fr: {
+        placeholder: "Écrivez les formules ligne par ligne. Par exemple : 12 * (4 + 1) =",
+        hint: "Saisissez une formule librement. Dès que la ligne courante peut être calculée, un aperçu ghost avec <code>=</code> et le résultat apparaît à droite. <code>Enter</code> le confirme, et lorsque vous modifiez une ligne déjà complétée, la valeur après <code>=</code> se met à jour automatiquement.",
+        legendOperators: "Opérateurs : <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code>",
+        legendFunctions: "Fonctions : <code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code>",
+        legendConstants: "Constantes : <code>pi</code>, <code>e</code>",
+        showHint: "Afficher l’aide ▼",
+        hideHint: "Masquer l’aide ▲",
+        toggleThemeAria: "Changer de thème",
+        toggleLanguageAria: "Changer de langue"
+      },
+      uk: {
+        placeholder: "Пишіть формули рядок за рядком. Наприклад: 12 * (4 + 1) =",
+        hint: "Вводьте формулу вільно. Щойно поточний рядок можна обчислити, праворуч з’являється ghost-підказка з <code>=</code> і результатом. <code>Enter</code> підтверджує його, а під час редагування готового рядка значення після <code>=</code> оновлюється автоматично.",
+        legendOperators: "Оператори: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code>",
+        legendFunctions: "Функції: <code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code>",
+        legendConstants: "Константи: <code>pi</code>, <code>e</code>",
+        showHint: "Показати підказку ▼",
+        hideHint: "Сховати підказку ▲",
+        toggleThemeAria: "Перемкнути тему",
+        toggleLanguageAria: "Змінити мову"
+      }
+    };
 
     const functionMap = {
       sqrt: "Math.sqrt",
@@ -395,6 +683,10 @@
 
     function setTheme(theme) {
       document.documentElement.dataset.theme = theme;
+      const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeColorMeta) {
+        themeColorMeta.setAttribute("content", theme === "dark" ? "#241f1a" : "#f8f4ec");
+      }
 
       if (themeToggle) {
         themeToggle.textContent = theme === "dark" ? "🌙" : "☀️";
@@ -418,6 +710,52 @@
         return localStorage.getItem(editorStorageKey) ?? "";
       } catch {
         return "";
+      }
+    }
+
+    function normalizeLocale(locale) {
+      if (!locale) {
+        return "en";
+      }
+
+      const lowered = String(locale).toLowerCase();
+      if (lowered.startsWith("zh")) {
+        return "zh";
+      }
+
+      const baseLocale = lowered.split(/[-_]/u)[0];
+      return localeOrder.includes(baseLocale) ? baseLocale : "en";
+    }
+
+    function loadPreferredLocale() {
+      try {
+        const storedLocale = normalizeLocale(localStorage.getItem(languageStorageKey));
+        if (storedLocale !== "en" || localStorage.getItem(languageStorageKey)) {
+          return storedLocale;
+        }
+      } catch {
+        // Ignore storage failures and keep falling back.
+      }
+
+      const browserLocales = Array.isArray(navigator.languages) && navigator.languages.length > 0
+        ? navigator.languages
+        : [navigator.language];
+
+      for (const locale of browserLocales) {
+        const normalizedLocale = normalizeLocale(locale);
+        if (localeOrder.includes(normalizedLocale)) {
+          return normalizedLocale;
+        }
+      }
+
+      return "en";
+    }
+
+    function savePreferredLocale(locale) {
+      try {
+        localStorage.setItem(languageStorageKey, normalizeLocale(locale));
+      } catch {
+        // Ignore storage failures and keep the in-memory locale.
       }
     }
 
@@ -445,13 +783,18 @@
       }
     }
 
+    function getLocaleMessages(locale = currentLocale) {
+      return localeMessages[locale] ?? localeMessages.en;
+    }
+
     function updateHintToggle() {
       if (!hintToggle || !topbarSide) {
         return;
       }
 
       const isCollapsed = topbarSide.classList.contains("hint-collapsed");
-      hintToggle.textContent = isCollapsed ? "Показать подсказку ▼" : "Скрыть подсказку ▲";
+      const messages = getLocaleMessages();
+      hintToggle.textContent = isCollapsed ? messages.showHint : messages.hideHint;
       hintToggle.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
     }
 
@@ -462,6 +805,79 @@
 
       topbarSide.classList.toggle("hint-collapsed");
       saveHintCollapsedState(topbarSide.classList.contains("hint-collapsed"));
+      updateHintToggle();
+    }
+
+    function isLanguageMenuOpen() {
+      return languageField?.classList.contains("is-open") ?? false;
+    }
+
+    function setLanguageMenuOpen(isOpen) {
+      if (!languageField || !languageButton) {
+        return;
+      }
+
+      languageField.classList.toggle("is-open", isOpen);
+      languageButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    }
+
+    function toggleLanguageMenu() {
+      setLanguageMenuOpen(!isLanguageMenuOpen());
+    }
+
+    function selectLocale(locale) {
+      applyLocale(locale);
+      savePreferredLocale(locale);
+      setLanguageMenuOpen(false);
+    }
+
+    function applyLocale(locale) {
+      currentLocale = normalizeLocale(locale);
+      const messages = getLocaleMessages(currentLocale);
+
+      document.documentElement.lang = currentLocale;
+
+      if (editor) {
+        editor.dataset.placeholder = messages.placeholder;
+      }
+
+      if (hint) {
+        hint.innerHTML = messages.hint;
+      }
+
+      if (legendOperators) {
+        legendOperators.innerHTML = messages.legendOperators;
+      }
+
+      if (legendFunctions) {
+        legendFunctions.innerHTML = messages.legendFunctions;
+      }
+
+      if (legendConstants) {
+        legendConstants.innerHTML = messages.legendConstants;
+      }
+
+      if (themeToggle) {
+        themeToggle.setAttribute("aria-label", messages.toggleThemeAria);
+        themeToggle.setAttribute("title", messages.toggleThemeAria);
+      }
+
+      if (languageButton) {
+        languageButton.textContent = localeNames[currentLocale] ?? localeNames.en;
+        languageButton.setAttribute("aria-label", messages.toggleLanguageAria);
+        languageButton.setAttribute("title", messages.toggleLanguageAria);
+      }
+
+      if (languageMenu) {
+        languageMenu.setAttribute("aria-label", messages.toggleLanguageAria);
+      }
+
+      for (const option of languageOptions) {
+        const isSelected = option.dataset.locale === currentLocale;
+        option.classList.toggle("is-selected", isSelected);
+        option.setAttribute("aria-selected", isSelected ? "true" : "false");
+      }
+
       updateHintToggle();
     }
 
@@ -1109,6 +1525,31 @@
       }
     });
 
+    if (languageButton) {
+      languageButton.addEventListener("click", () => {
+        toggleLanguageMenu();
+      });
+    }
+
+    for (const option of languageOptions) {
+      option.addEventListener("click", () => {
+        selectLocale(option.dataset.locale);
+      });
+    }
+
+    document.addEventListener("click", (event) => {
+      if (languageField && !languageField.contains(event.target)) {
+        setLanguageMenuOpen(false);
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && isLanguageMenuOpen()) {
+        setLanguageMenuOpen(false);
+        languageButton?.focus();
+      }
+    });
+
     if (themeToggle) {
       themeToggle.addEventListener("click", toggleTheme);
       setTheme(getCurrentTheme());
@@ -1119,9 +1560,9 @@
         topbarSide.classList.add("hint-collapsed");
       }
       hintToggle.addEventListener("click", toggleHint);
-      updateHintToggle();
     }
 
+    applyLocale(loadPreferredLocale());
     setEditorText(loadSavedEditorText());
     editor.focus();
   </script>
