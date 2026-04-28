@@ -1067,6 +1067,21 @@
       });
     });
 
+    editor.addEventListener("paste", (event) => {
+      event.preventDefault();
+      const pastedText = event.clipboardData?.getData("text/plain")?.replace(/\r\n?/gu, "\n") ?? "";
+      insertTextAtCaret(pastedText);
+
+      window.requestAnimationFrame(() => {
+        rerenderEditorPreservingCaret();
+        updateEditorEmptyState();
+        syncInlineResultOnActiveLine();
+        saveEditorText(getEditorText());
+        refreshGhost();
+        scrollCaretIntoView();
+      });
+    });
+
     ["click", "keyup", "focus"].forEach((eventName) => {
       editor.addEventListener(eventName, () => {
         window.requestAnimationFrame(refreshGhost);
