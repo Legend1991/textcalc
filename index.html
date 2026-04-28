@@ -451,14 +451,26 @@
       border-top: 1px solid var(--shell-border);
       color: var(--muted);
       font-size: 0.82rem;
+      line-height: 1.55;
       background: var(--legend-bg);
     }
 
+    .legend span {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.24rem;
+      line-height: 1.55;
+    }
+
     .legend code {
+      display: inline-block;
       color: var(--text);
       background: var(--code-bg);
       padding: 0.08rem 0.35rem;
       border-radius: 0.35rem;
+      line-height: 1.2;
+      vertical-align: baseline;
     }
 
     @media (max-width: 720px) {
@@ -481,7 +493,6 @@
         position: relative;
         flex-direction: column;
         align-items: flex-start;
-        padding-right: 198px;
       }
 
       .topbar-side {
@@ -491,7 +502,8 @@
       }
 
       .title {
-        padding: 0.4065rem 0;
+        width: 100%;
+        padding: 0.4065rem 10.8rem 0.4065rem 0;
       }
 
       .hint {
