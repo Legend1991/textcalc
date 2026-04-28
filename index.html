@@ -22,6 +22,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <!--
+    Add the global AdSense loader here after calcnote.io is approved in AdSense.
+
+    Example:
+    <script async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+      crossorigin="anonymous"></script>
+  -->
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -475,6 +483,22 @@
       vertical-align: baseline;
     }
 
+    .ad-zone {
+      padding: 16px 22px 22px;
+      border-top: 1px solid var(--shell-border);
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0), var(--legend-bg));
+    }
+
+    .ad-zone:empty {
+      display: none;
+    }
+
+    .ad-zone ins {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+    }
+
     @media (max-width: 720px) {
       :root {
         --editor-top-pad: 0.12rem;
@@ -535,6 +559,10 @@
       .legend {
         gap: 10px;
       }
+
+      .ad-zone {
+        padding: 14px 16px 18px;
+      }
     }
   </style>
 </head>
@@ -572,6 +600,22 @@
       <span id="legendFunctions">Functions: <code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code></span>
       <span id="legendConstants">Constants: <code>pi</code>, <code>e</code></span>
     </div>
+
+    <section class="ad-zone" id="adsenseSlot" aria-label="Advertisement"><!--
+      Paste your AdSense responsive display ad unit here after the site is approved.
+      Best ad-format: responsive display ad unit
+
+      Example:
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="XXXXXXXXXX"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+        (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    --></section>
   </main>
 
   <script>
