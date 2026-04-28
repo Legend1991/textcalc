@@ -199,7 +199,7 @@
     .topbar-side {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 4px;
       margin-left: auto;
     }
 
@@ -208,6 +208,7 @@
       font-size: 0.82rem;
       text-align: right;
       max-width: 40rem;
+      margin-right: 14px;
     }
 
     .hint-toggle {
@@ -483,6 +484,33 @@
       vertical-align: baseline;
     }
 
+    .policy-link {
+      color: var(--muted);
+      text-decoration: underline;
+      text-underline-offset: 0.14rem;
+      transition: color 140ms ease;
+    }
+
+    .policy-link:hover {
+      color: var(--text);
+    }
+
+    .policy-link:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 0.3rem;
+    }
+
+    .policy-link-desktop {
+      margin-left: auto;
+      align-self: flex-end;
+      white-space: nowrap;
+    }
+
+    .policy-link-mobile {
+      display: none;
+    }
+
     .ad-zone {
       padding: 16px 22px 22px;
       border-top: 1px solid var(--shell-border);
@@ -523,7 +551,13 @@
 
       .topbar-side {
         width: 100%;
-        display: block;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+          "hint hint"
+          "hint-toggle policy";
+        align-items: center;
+        column-gap: 12px;
         margin-left: 0;
       }
 
@@ -533,6 +567,7 @@
       }
 
       .hint {
+        grid-area: hint;
         text-align: left;
         max-width: none;
       }
@@ -542,8 +577,10 @@
       }
 
       .hint-toggle {
+        grid-area: hint-toggle;
         display: inline-block;
         margin-top: 8px;
+        justify-self: start;
       }
 
       .topbar-side.hint-collapsed .hint-toggle {
@@ -556,8 +593,25 @@
         right: 18px;
       }
 
+      .policy-link-mobile {
+        grid-area: policy;
+        display: inline-block;
+        font-size: 0.78rem;
+        margin-top: 8px;
+        justify-self: end;
+        position: static;
+      }
+
+      .topbar-side.hint-collapsed .policy-link-mobile {
+        margin-top: 0;
+      }
+
       .legend {
         gap: 10px;
+      }
+
+      .policy-link-desktop {
+        display: none;
       }
 
       .ad-zone {
@@ -587,6 +641,7 @@
           </div>
           <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme"></button>
         </div>
+        <a class="policy-link policy-link-mobile" href="/privacy-policy.html">Privacy Policy</a>
       </div>
     </div>
 
@@ -599,6 +654,7 @@
       <span id="legendOperators">Operators: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code></span>
       <span id="legendFunctions">Functions: <code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code></span>
       <span id="legendConstants">Constants: <code>pi</code>, <code>e</code></span>
+      <a class="policy-link policy-link-desktop" href="/privacy-policy.html">Privacy Policy</a>
     </div>
 
     <section class="ad-zone" id="adsenseSlot" aria-label="Advertisement"><!--
