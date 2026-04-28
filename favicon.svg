@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Background -->
+  <rect x="0" y="0" width="32" height="32" rx="7" fill="#2e1a0e"/>
+  <!-- × dark brown -->
+  <rect x="2"  y="2"  width="13" height="13" rx="3" fill="#4a2c0a"/>
+  <!-- ÷ warm beige -->
+  <rect x="17" y="2"  width="13" height="13" rx="3" fill="#d9a96e"/>
+  <!-- + orange -->
+  <rect x="2"  y="17" width="13" height="13" rx="3" fill="#e07428"/>
+  <!-- = deep brown -->
+  <rect x="17" y="17" width="13" height="13" rx="3" fill="#8b3a00"/>
+  <!-- symbols -->
+  <text x="8.5"  y="12" font-family="serif" font-size="9"  fill="#c97d3a" text-anchor="middle" font-weight="700">×</text>
+  <text x="23.5" y="12" font-family="serif" font-size="8"  fill="#5c2e00" text-anchor="middle" font-weight="700">÷</text>
+  <text x="8.5"  y="27" font-family="serif" font-size="11" fill="#fff8f0" text-anchor="middle">+</text>
+  <text x="23.5" y="27" font-family="serif" font-size="8"  fill="#ffd4a0" text-anchor="middle" font-weight="700">=</text>
+</svg>
