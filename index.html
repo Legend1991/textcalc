@@ -671,6 +671,25 @@
   </main>
 
   <script>
+    // TODO: Add google analytics events:
+    // line_add           - each time user add line by pressing "Enter" key or "Arrow Down" key.
+    //                      Empty or non empty line. Including when starts edit the first line, 
+    //                      because it's already exist. But the initial line does not count when
+    //                      added by the app on initial launch.
+    // line_edit          - fires when user edit line. A new empty or existing one. If user just
+    //                      added a new empty line by pressing "Enter" key or "Arrow Down" key
+    //                      it does not count.
+    // line_delete        - fires when user deletes line fully. Wether it contains expression or
+    //                      not. Wether it is empty or not.
+    // expression_add     - fires when user added new expression and confirmed it so ghost result
+    //                      became non ghost. Does not fire when user edited existing expression
+    //                      and confirmed result. Only for new one.
+    // expression_confirm - fires when ghost result becomes non ghost. For a new or existing
+    //                      expression (during editing).
+    // expression_delete  - fires when user deletes expression. It means that there was confirmed
+    //                      expression in the line and then user deleted that expression. Without
+    //                      or with deleting the line.
+
     const editor = document.getElementById("editor");
     const ghost = document.getElementById("ghost");
     const editorWrap = document.getElementById("editorWrap");
