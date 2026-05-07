@@ -671,25 +671,6 @@
   </main>
 
   <script>
-    // TODO: Add google analytics events:
-    // line_add           - each time user add line by pressing "Enter" key or "Arrow Down" key.
-    //                      Empty or non empty line. Including when starts edit the first line, 
-    //                      because it's already exist. But the initial line does not count when
-    //                      added by the app on initial launch.
-    // line_edit          - fires when user edit line. A new empty or existing one. If user just
-    //                      added a new empty line by pressing "Enter" key or "Arrow Down" key
-    //                      it does not count.
-    // line_delete        - fires when user deletes line fully. Wether it contains expression or
-    //                      not. Wether it is empty or not.
-    // expression_add     - fires when user added new expression and confirmed it so ghost result
-    //                      became non ghost. Does not fire when user edited existing expression
-    //                      and confirmed result. Only for new one.
-    // expression_confirm - fires when ghost result becomes non ghost. For a new or existing
-    //                      expression (during editing).
-    // expression_delete  - fires when user deletes expression. It means that there was confirmed
-    //                      expression in the line and then user deleted that expression. Without
-    //                      or with deleting the line.
-
     const editor = document.getElementById("editor");
     const ghost = document.getElementById("ghost");
     const editorWrap = document.getElementById("editorWrap");
@@ -708,6 +689,10 @@
     let pendingResult = null;
     let inlineEditLineStart = null;
     let currentLocale = "en";
+    let analyticsTextSnapshot = "";
+    let analyticsFirstLineAdded = false;
+    let analyticsExpressionLines = new Set();
+    window.calcnoteAnalyticsQueue = window.calcnoteAnalyticsQueue || [];
     const themeStorageKey = "text-calc-theme";
     const languageStorageKey = "text-calc-language";
     const editorStorageKey = "text-calc-content";
@@ -885,6 +870,146 @@
         localStorage.setItem(languageStorageKey, normalizeLocale(locale));
       } catch {
         // Ignore storage failures and keep the in-memory locale.
+      }
+    }
+
+    function trackAnalyticsEvent(name, params = {}) {
+      const event = { name, params };
+      if (typeof window.calcnoteTrackEvent === "function") {
+        window.calcnoteTrackEvent(name, params);
+        return;
+      }
+
+      window.calcnoteAnalyticsQueue.push(event);
+    }
+
+    function splitEditorLines(text) {
+      return text.replace(/\r\n?/g, "\n").split("\n");
+    }
+
+    function getConfirmedExpressionParts(line) {
+      const equalIndex = line.lastIndexOf("=");
+      if (equalIndex === -1) {
+        return null;
+      }
+
+      const expression = line.slice(0, equalIndex).trim();
+      const result = line.slice(equalIndex + 1).trim();
+      if (!expression || !result) {
+        return null;
+      }
+
+      return { expression, result };
+    }
+
+    function hasConfirmedExpression(line) {
+      return getConfirmedExpressionParts(line) !== null;
+    }
+
+    function hasExpressionShell(line) {
+      const equalIndex = line.lastIndexOf("=");
+      return equalIndex !== -1 && line.slice(0, equalIndex).trim() !== "";
+    }
+
+    function getConfirmedExpressionLineIndexes(lines) {
+      const indexes = new Set();
+      lines.forEach((line, index) => {
+        if (hasConfirmedExpression(line)) {
+          indexes.add(index);
+        }
+      });
+      return indexes;
+    }
+
+    function syncAnalyticsExpressionLines(text) {
+      analyticsExpressionLines = getConfirmedExpressionLineIndexes(splitEditorLines(text));
+    }
+
+    function initializeEditorAnalytics(text) {
+      analyticsTextSnapshot = text;
+      analyticsFirstLineAdded = text.replace(/\n/g, "").length > 0;
+      syncAnalyticsExpressionLines(text);
+    }
+
+    function updateTrackedExpressionLines(lines) {
+      const nextExpressionLines = new Set(analyticsExpressionLines);
+      const trackedIndexes = Array.from(analyticsExpressionLines);
+      const maxTrackedIndex = trackedIndexes.length > 0 ? Math.max(...trackedIndexes) + 1 : 0;
+      const maxIndex = Math.max(lines.length, maxTrackedIndex);
+
+      for (let index = 0; index < maxIndex; index += 1) {
+        if (index >= lines.length) {
+          nextExpressionLines.delete(index);
+          continue;
+        }
+
+        if (hasConfirmedExpression(lines[index])) {
+          nextExpressionLines.add(index);
+        } else if (!hasExpressionShell(lines[index])) {
+          nextExpressionLines.delete(index);
+        }
+      }
+
+      analyticsExpressionLines = nextExpressionLines;
+    }
+
+    function trackEditorTextChange(previousText, nextText, options = {}) {
+      if (previousText === nextText) {
+        return;
+      }
+
+      const previousLines = splitEditorLines(previousText);
+      const nextLines = splitEditorLines(nextText);
+      const trigger = options.trigger ?? "input";
+
+      if (!analyticsFirstLineAdded && nextText.replace(/\n/g, "").length > 0) {
+        trackAnalyticsEvent("line_add", { trigger: "first_edit" });
+        analyticsFirstLineAdded = true;
+      }
+
+      const lineAddCount = options.lineAddCount ?? 0;
+      for (let index = 0; index < lineAddCount; index += 1) {
+        trackAnalyticsEvent("line_add", { trigger });
+      }
+
+      if (nextLines.length < previousLines.length) {
+        for (let index = 0; index < previousLines.length - nextLines.length; index += 1) {
+          trackAnalyticsEvent("line_delete", { trigger });
+        }
+      }
+
+      analyticsExpressionLines.forEach((lineIndex) => {
+        const nextLine = nextLines[lineIndex];
+        if (nextLine === undefined || (!hasConfirmedExpression(nextLine) && !hasExpressionShell(nextLine))) {
+          trackAnalyticsEvent("expression_delete", { trigger });
+        }
+      });
+
+      if (!options.skipLineEdit) {
+        trackAnalyticsEvent("line_edit", { trigger });
+      }
+
+      analyticsTextSnapshot = nextText;
+      updateTrackedExpressionLines(nextLines);
+    }
+
+    function trackExpressionConfirm(previousText, nextText, lineIndex, trigger, options = {}) {
+      const wasExistingExpression = analyticsExpressionLines.has(lineIndex);
+      trackAnalyticsEvent("expression_confirm", { trigger });
+
+      if (!wasExistingExpression) {
+        trackAnalyticsEvent("expression_add", { trigger });
+      }
+
+      trackEditorTextChange(previousText, nextText, {
+        trigger,
+        lineAddCount: options.lineAddCount ?? 0,
+        skipLineEdit: true
+      });
+
+      const nextLines = splitEditorLines(nextText);
+      if (hasConfirmedExpression(nextLines[lineIndex] ?? "")) {
+        analyticsExpressionLines.add(lineIndex);
       }
     }
 
@@ -1309,6 +1434,10 @@
       };
     }
 
+    function getLineIndexAtOffset(text, offset) {
+      return text.slice(0, offset).split("\n").length - 1;
+    }
+
     function getPendingExpressionInfo() {
       const info = getCurrentLineInfo();
       const equalIndex = info.lineText.lastIndexOf("=");
@@ -1505,16 +1634,23 @@
       selection.addRange(range);
     }
 
-    function confirmGhostResult(moveToNextLine = false) {
+    function confirmGhostResult(moveToNextLine = false, trigger = "enter") {
       if (!pendingResult) {
+        const previousText = getEditorText();
         insertTextAtCaret("\n");
         rerenderEditorPreservingCaret();
         inlineEditLineStart = null;
+        trackEditorTextChange(previousText, getEditorText(), {
+          trigger,
+          lineAddCount: 1,
+          skipLineEdit: true
+        });
         return;
       }
 
       const info = getCurrentLineInfo();
       const equalIndex = info.lineText.lastIndexOf("=");
+      const lineIndex = getLineIndexAtOffset(info.text, info.lineStart);
       const completedLine = `${info.lineText.slice(0, equalIndex + 1)} ${pendingResult}`;
       const afterText = info.text.slice(info.lineEnd);
       const separator = moveToNextLine && !afterText.startsWith("\n") ? "\n" : "";
@@ -1529,14 +1665,18 @@
       pendingResult = null;
       inlineEditLineStart = null;
       ghost.style.display = "none";
+      trackExpressionConfirm(info.text, nextText, lineIndex, trigger, {
+        lineAddCount: separator ? 1 : 0
+      });
     }
 
-    function confirmImplicitExpression(moveToNextLine = false) {
+    function confirmImplicitExpression(moveToNextLine = false, trigger = "enter") {
       const implicit = getImplicitExpressionInfo();
       if (!implicit) {
         return false;
       }
 
+      const lineIndex = getLineIndexAtOffset(implicit.info.text, implicit.info.lineStart);
       const completedLine = `${implicit.visibleExpression} = ${implicit.result}`;
       const afterText = implicit.info.text.slice(implicit.info.lineEnd);
       const separator = moveToNextLine && !afterText.startsWith("\n") ? "\n" : "";
@@ -1551,16 +1691,19 @@
       pendingResult = null;
       inlineEditLineStart = null;
       ghost.style.display = "none";
+      trackExpressionConfirm(implicit.info.text, nextText, lineIndex, trigger, {
+        lineAddCount: separator ? 1 : 0
+      });
       return true;
     }
 
-    function confirmCurrentLineResult(moveToNextLine = false) {
-      if (confirmImplicitExpression(moveToNextLine)) {
+    function confirmCurrentLineResult(moveToNextLine = false, trigger = "enter") {
+      if (confirmImplicitExpression(moveToNextLine, trigger)) {
         return true;
       }
 
       if (getPendingExpressionInfo()) {
-        confirmGhostResult(moveToNextLine);
+        confirmGhostResult(moveToNextLine, trigger);
         return true;
       }
 
@@ -1570,10 +1713,15 @@
     editor.addEventListener("keydown", (event) => {
       if (event.key === "Tab") {
         event.preventDefault();
+        const previousText = getEditorText();
         insertTextAtCaret("    ");
         window.requestAnimationFrame(() => {
+          const nextText = getEditorText();
+          trackEditorTextChange(previousText, nextText, { trigger: "tab" });
           updateEditorEmptyState();
           syncInlineResultOnActiveLine();
+          analyticsTextSnapshot = getEditorText();
+          updateTrackedExpressionLines(splitEditorLines(analyticsTextSnapshot));
           saveEditorText(getEditorText());
           refreshGhost();
         });
@@ -1581,7 +1729,7 @@
       }
 
       if (event.key === "ArrowDown" && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
-        if (confirmCurrentLineResult(true)) {
+        if (confirmCurrentLineResult(true, "arrow_down")) {
           event.preventDefault();
           refreshGhost();
         }
@@ -1590,13 +1738,19 @@
 
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        if (confirmCurrentLineResult(false)) {
+        if (confirmCurrentLineResult(false, "enter")) {
           refreshGhost();
           return;
         }
+        const previousText = getEditorText();
         insertTextAtCaret("\n");
         rerenderEditorPreservingCaret();
         inlineEditLineStart = null;
+        trackEditorTextChange(previousText, getEditorText(), {
+          trigger: "enter",
+          lineAddCount: 1,
+          skipLineEdit: true
+        });
         saveEditorText(getEditorText());
         refreshGhost();
       }
@@ -1604,8 +1758,13 @@
 
     editor.addEventListener("input", () => {
       window.requestAnimationFrame(() => {
+        const previousText = analyticsTextSnapshot;
+        const nextText = getEditorText();
+        trackEditorTextChange(previousText, nextText, { trigger: "input" });
         updateEditorEmptyState();
         syncInlineResultOnActiveLine();
+        analyticsTextSnapshot = getEditorText();
+        updateTrackedExpressionLines(splitEditorLines(analyticsTextSnapshot));
         saveEditorText(getEditorText());
         refreshGhost();
         scrollCaretIntoView();
@@ -1614,13 +1773,18 @@
 
     editor.addEventListener("paste", (event) => {
       event.preventDefault();
+      const previousText = getEditorText();
       const pastedText = event.clipboardData?.getData("text/plain")?.replace(/\r\n?/gu, "\n") ?? "";
       insertTextAtCaret(pastedText);
 
       window.requestAnimationFrame(() => {
         rerenderEditorPreservingCaret();
+        const nextText = getEditorText();
+        trackEditorTextChange(previousText, nextText, { trigger: "paste" });
         updateEditorEmptyState();
         syncInlineResultOnActiveLine();
+        analyticsTextSnapshot = getEditorText();
+        updateTrackedExpressionLines(splitEditorLines(analyticsTextSnapshot));
         saveEditorText(getEditorText());
         refreshGhost();
         scrollCaretIntoView();
@@ -1692,13 +1856,15 @@
     }
 
     applyLocale(loadPreferredLocale());
-    setEditorText(loadSavedEditorText());
+    const savedEditorText = loadSavedEditorText();
+    setEditorText(savedEditorText);
+    initializeEditorAnalytics(savedEditorText);
     editor.focus();
   </script>
   <script type="module">
     // Import the functions you need from the SDKs you need
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-analytics.js";
+    import { getAnalytics, logEvent } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-analytics.js";
     // TODO: Add SDKs for Firebase products that you want to use
     // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -1717,6 +1883,14 @@
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
+    window.calcnoteTrackEvent = (name, params = {}) => {
+      logEvent(analytics, name, params);
+    };
+
+    for (const event of window.calcnoteAnalyticsQueue ?? []) {
+      window.calcnoteTrackEvent(event.name, event.params);
+    }
+    window.calcnoteAnalyticsQueue = [];
   </script>
 </body>
 </html>
