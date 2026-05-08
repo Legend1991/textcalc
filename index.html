@@ -480,31 +480,76 @@
       vertical-align: baseline;
     }
 
-    .policy-link {
+    .site-link {
       color: var(--muted);
       text-decoration: underline;
       text-underline-offset: 0.14rem;
       transition: color 140ms ease;
+      white-space: nowrap;
     }
 
-    .policy-link:hover {
+    .site-link:hover {
       color: var(--text);
     }
 
-    .policy-link:focus-visible {
+    .site-link:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
       border-radius: 0.3rem;
     }
 
-    .policy-link-desktop {
-      margin-left: auto;
-      align-self: flex-end;
-      white-space: nowrap;
+    .site-links {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
     }
 
-    .policy-link-mobile {
+    .site-links-desktop {
+      margin-left: auto;
+      align-self: flex-end;
+    }
+
+    .site-links-mobile {
       display: none;
+    }
+
+    .publisher-content {
+      border-top: 1px solid var(--shell-border);
+      background: var(--panel);
+      padding: 18px 22px 20px;
+      color: var(--text);
+      font-size: 0.84rem;
+      line-height: 1.55;
+    }
+
+    .publisher-content h2,
+    .publisher-content h3 {
+      margin: 0;
+      font-family: var(--brand-font);
+      font-size: 0.97rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .publisher-content h3 {
+      margin-top: 0.95rem;
+      font-size: 0.88rem;
+    }
+
+    .publisher-content p {
+      margin: 0.6rem 0 0;
+      color: var(--muted);
+    }
+
+    .publisher-content ul {
+      margin: 0.5rem 0 0;
+      padding-left: 1.2rem;
+      color: var(--muted);
+    }
+
+    .publisher-content li + li {
+      margin-top: 0.22rem;
     }
 
     .ad-zone {
@@ -589,16 +634,19 @@
         right: 18px;
       }
 
-      .policy-link-mobile {
+      .site-links-mobile {
         grid-area: policy;
-        display: inline-block;
-        font-size: 0.78rem;
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        font-size: 0.74rem;
         margin-top: 8px;
         justify-self: end;
         position: static;
       }
 
-      .topbar-side.hint-collapsed .policy-link-mobile {
+      .topbar-side.hint-collapsed .site-links-mobile {
         margin-top: 0;
       }
 
@@ -606,8 +654,12 @@
         gap: 10px;
       }
 
-      .policy-link-desktop {
+      .site-links-desktop {
         display: none;
+      }
+
+      .publisher-content {
+        padding: 14px 16px 16px;
       }
 
       .ad-zone {
@@ -637,7 +689,12 @@
           </div>
           <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme"></button>
         </div>
-        <a class="policy-link policy-link-mobile" href="/privacy-policy.html">Privacy Policy</a>
+        <nav class="site-links site-links-mobile" aria-label="Site links">
+          <a class="site-link" href="/about.html">About</a>
+          <a class="site-link" href="/contact.html">Contact</a>
+          <a class="site-link" href="/terms.html">Terms</a>
+          <a class="site-link" href="/privacy-policy.html">Privacy</a>
+        </nav>
       </div>
     </div>
 
@@ -650,8 +707,25 @@
       <span id="legendOperators">Operators: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code></span>
       <span id="legendFunctions">Functions: <code>sqrt()</code>, <code>sin()</code>, <code>cos()</code>, <code>tan()</code>, <code>abs()</code>, <code>log()</code></span>
       <span id="legendConstants">Constants: <code>pi</code>, <code>e</code></span>
-      <a class="policy-link policy-link-desktop" href="/privacy-policy.html">Privacy Policy</a>
+      <nav class="site-links site-links-desktop" aria-label="Site links">
+        <a class="site-link" href="/about.html">About</a>
+        <a class="site-link" href="/contact.html">Contact</a>
+        <a class="site-link" href="/terms.html">Terms</a>
+        <a class="site-link" href="/privacy-policy.html">Privacy</a>
+      </nav>
     </div>
+
+    <section class="publisher-content" aria-label="About calcnote">
+      <h2>About calcnote</h2>
+      <p>calcnote.io is a text-based calculator notebook built for quick math, scratch-work, and iterative edits. You can type freely, see inline result previews, confirm results with keyboard actions, and continue writing without leaving the editor. The app runs directly in your browser and stores your note content locally on your device.</p>
+      <h3>Common examples</h3>
+      <ul>
+        <li><code>1 + 1 = 2</code></li>
+        <li><code>12 * (4 + 1) = 60</code></li>
+        <li><code>sqrt(81) = 9</code></li>
+        <li><code>sin(pi / 2) = 1</code></li>
+      </ul>
+    </section>
 
     <section class="ad-zone" id="adsenseSlot" aria-label="Advertisement"><!--
       Paste your AdSense responsive display ad unit here after the site is approved.
